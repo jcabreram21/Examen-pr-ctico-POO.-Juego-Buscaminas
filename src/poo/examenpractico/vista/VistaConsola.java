@@ -19,6 +19,18 @@ public class VistaConsola {
         System.out.println("0. Salir");
     }
     
+    public void mostrarTablero(char[][] celdas) {
+        System.out.println("\n    1  2  3  4  5  6  7  8  9  10");
+        for (int fila = 0; fila < celdas.length; fila++) {
+            char letraFila = (char) ('A' + fila);
+            System.out.print(" " + letraFila + " ");
+            for (int col = 0; col < celdas[fila].length; col++) {
+                System.out.print(" " + celdas[fila][col] + " ");
+            }
+        System.out.println();
+        }
+    }
+
     
     public void mostrarMenuJuego() {
         System.out.println("\n       ========= OPCIONES DE JUEGO =========");
@@ -44,6 +56,27 @@ public class VistaConsola {
     public void mostrarError(String mensaje) {
         System.out.println("Error: " + mensaje);
     }
-    
+    public void mostrarMinaEnCasilla(String coordenada) {
+        mostrarMensaje("Boom!! Había una mina (" + 'X' + ") en la casilla " + coordenada + ".");
+    }
+
+    public void mostrarCasillaVacia(String coordenada) {
+        mostrarMensaje("Casilla " + coordenada + " vacía (" + 'V' + "). Se revelaron espacios vacíos alrededor!.");
+    }
+
+
+    public void mostrarTodasDescubiertas() {
+        mostrarMensaje("¡Has descubierto todas las casillas seguras del tablero!");
+    }
+
+    public void mostrarResultadoPartida(boolean gano) {
+        if (gano) {
+            mostrarTodasDescubiertas();
+            mostrarMensaje("VICTORIA! Has ganado, completaste el tablero sin detonar minas");
+        } else {
+            mostrarMensaje("DERROTA! Perdiste, detonaste una mina...\n\n         FIN DEL JUEGO...");
+        }
+    }
+
    
     }
