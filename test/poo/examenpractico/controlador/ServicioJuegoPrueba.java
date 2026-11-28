@@ -1,83 +1,75 @@
 package poo.examenpractico.controlador;
 
-import java.io.IOException;
+import poo.examenpractico.modelo.Juego;
+import poo.examenpractico.modelo.Jugador;
+import poo.examenpractico.modelo.Tablero;
+import poo.examenpractico.modelo.Coordenada;
+import poo.examenpractico.excepciones.PersistenciaException;
 
-public class ServicioJuegoPrueba
-        implements ServicioJuego, ServicioJuego.Partida {
+public class ServicioJuegoPrueba implements ServicioJuego {
 
     int nuevasPartidas;
     int partidasCargadas;
     int partidasGuardadas;
-    int casillasDescubiertas;
-    int casillasMarcadas;
-
-    int ultimaFila;
-    int ultimaColumna;
 
     boolean falloCarga;
-    boolean rechazarDescubrimiento;
+    boolean falloGuardado;
 
-    char valorCasilla = 'V';
+    Juego juego;
+    Juego partidaGuardada;
 
-    Estado estado = Estado.EN_CURSO;
-    Estado estadoDespuesDeDescubrir = Estado.EN_CURSO;
+    //Crear tablero conocido para las pruebas
+    static Juego crearJuego(Jugador jugador) {
 
-    @Override
-    public Partida nuevaPartida() {
-        nuevasPartidas++;
-        return this;
+        Coordenada[] minas = new Coordenada[10];
+
+        for (int columna = 0; columna < 10; columna++) {
+
+            minas[columna] = new Coordenada(0, columna);
+        }
+
+        Tablero tablero = Tablero.conMinasEn(
+                10, 10, minas);
+
+        return new Juego(jugador, tablero);
     }
 
     @Override
-    public Partida cargarPartida() throws IOException {
+    public Juego nuevaPartida(Jugador jugador) {
 
-        if (falloCarga) {
-            throw new IOException("No existe una partida guardada.");
+        nuevasPartidas++;
+
+        juego = crearJuego(jugador);
+
+        return juego;
+    }
+
+    @Override
+    public Juego cargarPartida() throws PersistenciaException {
+
+        if (falloCarga || partidaGuardada == null) {
+
+            throw new PersistenciaException("No existe una partida guardada.");
         }
 
         partidasCargadas++;
-        return this;
+
+        juego = partidaGuardada;
+
+        return juego;
     }
 
     @Override
-    public void guardarPartida(Partida partida) {
-        partidasGuardadas++;
-    }
+    public void guardarPartida(Juego juego)
+            throws PersistenciaException {
 
-    @Override
-    public char[][] obtenerTableroVisible() {
-        return new char[10][10];
-    }
+        if (falloGuardado) {
 
-    @Override
-    public char descubrir(int fila, int columna)
-            throws AccionJuegoException {
-
-        if (rechazarDescubrimiento) {
-            throw new AccionJuegoException("La casilla ya está descubierta.");
+            throw new PersistenciaException("No se pudo guardar la partida.");
         }
 
-        casillasDescubiertas++;
+        partidasGuardadas++;
 
-        ultimaFila = fila;
-        ultimaColumna = columna;
-
-        estado = estadoDespuesDeDescubrir;
-
-        return valorCasilla;
-    }
-
-    @Override
-    public void marcarDesmarcar(int fila, int columna) {
-
-        casillasMarcadas++;
-
-        ultimaFila = fila;
-        ultimaColumna = columna;
-    }
-
-    @Override
-    public Estado obtenerEstado() {
-        return estado;
+        partidaGuardada = juego;
     }
 }

@@ -1,20 +1,21 @@
 package poo.examenpractico.controlador;
 
-import java.io.IOException;
-import java.util.InputMismatchException;
-
 import poo.examenpractico.vista.VistaConsola;
-import poo.examenpractico.controlador.ServicioJuego.Partida;
-import poo.examenpractico.controlador.ServicioJuego.Estado;
-import poo.examenpractico.controlador.ServicioJuego.AccionJuegoException;
+import poo.examenpractico.modelo.Juego;
+import poo.examenpractico.modelo.Jugador;
+import poo.examenpractico.modelo.Coordenada;
+import poo.examenpractico.modelo.EstadoJuego;
+import poo.examenpractico.modelo.Casilla;
+
+import poo.examenpractico.excepciones.BuscaminasException;
+import poo.examenpractico.excepciones.PersistenciaException;
 
 public class BuscaminasControlador {
-
 
     private final VistaConsola vista;
     private final ServicioJuego servicio;
 
-    
+
     public BuscaminasControlador(
             VistaConsola vista, ServicioJuego servicio) {
 
@@ -22,7 +23,7 @@ public class BuscaminasControlador {
         this.servicio = servicio;
     }
 
-    // Iniciar la aplicacion
+    //Menú principal
     public void iniciar() {
 
         String opcion;
@@ -46,17 +47,15 @@ public class BuscaminasControlador {
                         break;
 
                     case "0":
-                        vista.mostrarMensaje(
-                                "Gracias por jugar.");
+                        vista.mostrarMensaje("Gracias por jugar.");
                         break;
 
                     default:
-                        vista.mostrarError(
-                                "Opción inválida.");
+                        vista.mostrarError("Opción inválida.");
                         break;
                 }
 
-            } catch (AccionJuegoException | IOException e) {
+            } catch (PersistenciaException e) {
 
                 vista.mostrarError(e.getMessage());
             }
@@ -65,32 +64,43 @@ public class BuscaminasControlador {
     }
 
     //Crear una nueva partida
-    private void nuevaPartida()
-            throws AccionJuegoException {
+    private void nuevaPartida() {
 
-        Partida partida = servicio.nuevaPartida();
+        String nombre = vista.pedirEntrada("Ingrese el nombre del jugador: ");
+
+        if (nombre == null || nombre.trim().isEmpty()) {
+
+            vista.mostrarError("El nombre del jugador no puede estar vacío.");
+
+            return;
+        }
+
+        Jugador jugador = new Jugador(nombre);
+
+        Juego juego = servicio.nuevaPartida(jugador);
 
         vista.mostrarMensaje("Nueva partida iniciada.");
 
-        jugar(partida);
+        jugar(juego);
     }
 
     //Cargar una partida existente
-    private void cargarPartida() throws IOException {
+    private void cargarPartida()
+            throws PersistenciaException {
 
-        Partida partida = servicio.cargarPartida();
+        Juego juego = servicio.cargarPartida();
 
         vista.mostrarMensaje("Partida cargada correctamente.");
 
-        jugar(partida);
+        jugar(juego);
     }
 
-    //Gestionar el ciclo de juego
-    private void jugar(Partida partida) {
+    //Ciclo principal de la partida
+    private void jugar(Juego juego) {
 
-        mostrarTablero(partida);
+        mostrarTablero(juego);
 
-        while (partida.obtenerEstado() == Estado.EN_CURSO) {
+        while (!juego.isTerminado()) {
 
             vista.mostrarMenuJuego();
 
@@ -101,15 +111,15 @@ public class BuscaminasControlador {
                 switch (opcion) {
 
                     case "1":
-                        descubrirCasilla(partida);
+                        descubrirCasilla(juego);
                         break;
 
                     case "2":
-                        marcarCasilla(partida);
+                        marcarCasilla(juego);
                         break;
 
                     case "3":
-                        guardarPartida(partida);
+                        guardarPartida(juego);
                         break;
 
                     case "0":
@@ -121,89 +131,104 @@ public class BuscaminasControlador {
                         break;
                 }
 
-            } catch (InputMismatchException| ArrayIndexOutOfBoundsException| AccionJuegoException e) {
+            } catch (BuscaminasException e) {
 
                 vista.mostrarError(e.getMessage());
-
-            } catch (IOException e) {
-
-                vista.mostrarError("Error al guardar: " + e.getMessage());
             }
 
-            mostrarTablero(partida);
+            mostrarTablero(juego);
         }
 
-        mostrarResultado(partida);
+        mostrarResultado(juego);
     }
 
     //Descubrir una casilla
-    private void descubrirCasilla(Partida partida)
-            throws AccionJuegoException {
+    private void descubrirCasilla(Juego juego)
+            throws BuscaminasException {
 
-        String coordenada = vista.pedirCoordenada();
+        String texto = vista.pedirCoordenada();
 
-        int[] posicion =
-                ConversorCoordenadas.convertir(coordenada);
+        Coordenada coordenada =
+                Coordenada.desdeTexto(texto);
 
-        int fila = posicion[0];
-        int columna = posicion[1];
+        juego.descubrir(coordenada);
 
-        char valor = partida.descubrir(fila, columna);
+        char simbolo = juego.getTablero().getSimbolo(
+                coordenada.getFila(),
+                coordenada.getColumna());
 
-        if (valor == 'X') {
+        if (simbolo == Casilla.SIMBOLO_MINA) {
 
-            vista.mostrarMinaEnCasilla(coordenada);
+            vista.mostrarMinaEnCasilla(
+                    coordenada.toString());
 
-        } else if (valor == 'V') {
+        } else if (simbolo == Casilla.SIMBOLO_VACIA) {
 
-            vista.mostrarCasillaVacia(coordenada);
+            vista.mostrarCasillaVacia(
+                    coordenada.toString());
 
         } else {
 
-            vista.mostrarMensaje("Casilla " + coordenada + " descubierta: " + valor);
+            vista.mostrarMensaje("Casilla " + coordenada + " descubierta: " + simbolo);
         }
     }
 
     //Marcar o desmarcar una casilla
-    private void marcarCasilla(Partida partida)
-            throws AccionJuegoException {
+    private void marcarCasilla(Juego juego)
+            throws BuscaminasException {
 
-        String coordenada = vista.pedirCoordenada();
+        String texto = vista.pedirCoordenada();
 
-        int[] posicion =
-                ConversorCoordenadas.convertir(coordenada);
+        Coordenada coordenada =
+                Coordenada.desdeTexto(texto);
 
-        partida.marcarDesmarcar(
-                posicion[0], posicion[1]);
+        boolean marcada = juego.marcar(coordenada);
 
-        vista.mostrarMensaje("Marcado actualizado en " + coordenada);
+        if (marcada) {
+
+            vista.mostrarMensaje("Casilla " + coordenada + " marcada.");
+
+        } else {
+
+            vista.mostrarMensaje("Casilla " + coordenada + " desmarcada.");
+        }
     }
 
-    //Guardar la partida
-    private void guardarPartida(Partida partida)
-            throws IOException {
+    //Guardar partida
+    private void guardarPartida(Juego juego)
+            throws PersistenciaException {
 
-        servicio.guardarPartida(partida);
+        servicio.guardarPartida(juego);
 
         vista.mostrarMensaje("Partida guardada correctamente.");
     }
 
-    //Mostrar tablero actualizado
-    private void mostrarTablero(Partida partida) {
+    //Mostrar información y tablero
+    private void mostrarTablero(Juego juego) {
 
-        vista.mostrarTablero(partida.obtenerTableroVisible());
+        vista.mostrarMensaje("\nJugador: "
+                + juego.getJugador().getNombre());
+
+        vista.mostrarMensaje("Minas pendientes de marcar: "
+                + juego.getMinasRestantes());
+
+        vista.mostrarMensaje("Jugadas realizadas: "
+                + juego.getJugadas());
+
+        vista.mostrarTablero(
+                juego.getTablero().getSimbolos());
     }
 
-    //Mostrar el resultado final
-    private void mostrarResultado(Partida partida) {
+    //Mostrar resultado final
+    private void mostrarResultado(Juego juego) {
 
-        Estado estado = partida.obtenerEstado();
+        EstadoJuego estado = juego.getEstado();
 
-        if (estado == Estado.GANADA) {
+        if (estado == EstadoJuego.GANADO) {
 
             vista.mostrarResultadoPartida(true);
 
-        } else if (estado == Estado.PERDIDA) {
+        } else if (estado == EstadoJuego.PERDIDO) {
 
             vista.mostrarResultadoPartida(false);
         }

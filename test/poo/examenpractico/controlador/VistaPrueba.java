@@ -1,19 +1,27 @@
 package poo.examenpractico.controlador;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import poo.examenpractico.vista.VistaConsola;
 
 public class VistaPrueba extends VistaConsola {
 
-    private int vecesMostrado = 0;
-    private int vecesMenuJuego = 0;
-    private int vecesTablero = 0;
-    private int vecesSolicitadaEntrada = 0;
-    private int vecesError = 0;
+    //Contadores
+    private int vecesMostrado;
+    private int vecesMenuJuego;
+    private int vecesTablero;
+    private int vecesSolicitadaEntrada;
+    private int vecesError;
 
     private Boolean resultado;
 
+    private final List<String> mensajes = new ArrayList<>();
+
+    //Entradas simuladas
     private final String[] entradas;
-    private int indice = 0;
+    private int indice;
+
 
     public VistaPrueba(String... entradas) {
 
@@ -42,10 +50,16 @@ public class VistaPrueba extends VistaConsola {
         vecesSolicitadaEntrada++;
 
         if (indice >= entradas.length) {
+
             throw new AssertionError("No hay más entradas de prueba.");
         }
 
         return entradas[indice++];
+    }
+
+    @Override
+    public String pedirCoordenada() {
+        return pedirEntrada("Coordenada: ");
     }
 
     @Override
@@ -55,7 +69,7 @@ public class VistaPrueba extends VistaConsola {
 
     @Override
     public void mostrarMensaje(String mensaje) {
-        // Evitar mensajes durante las pruebas.
+        mensajes.add(mensaje);
     }
 
     @Override
@@ -63,6 +77,7 @@ public class VistaPrueba extends VistaConsola {
         resultado = gano;
     }
 
+    // Getters
     public int getVecesMostrado() {
         return vecesMostrado;
     }
@@ -85,5 +100,9 @@ public class VistaPrueba extends VistaConsola {
 
     public Boolean getResultado() {
         return resultado;
+    }
+
+    public boolean contieneMensaje(String mensaje) {
+        return mensajes.contains(mensaje);
     }
 }
